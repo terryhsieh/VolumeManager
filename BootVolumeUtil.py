@@ -56,14 +56,14 @@ def boot_up_by_images(deployDict):
 				dest_dir = StorageMountPoint+'/'+deployDict.get('zone_id') + '/nodes/' + node
 				copytree(source_dir, dest_dir)
 
-				modify_exports_file(dest_dir)
+				modify_exports_file(deployDict.get('zone_id'))
 		else:
 			print('copy.....')
 			source_dir = StorageMountPoint+'/'+deployDict.get('volume')
                         for node in deployDict.get('hostname'):
                                 dest_dir = StorageMountPoint+'/'+deployDict.get('zone_id') + '/nodes/' + node
                                 copytree(source_dir, dest_dir)
-				modify_exports_file(dest_dir)
+				modify_exports_file(deployDict.get('zone_id'))
 def reboot(hostname, addr):
 	return True
 
@@ -73,16 +73,19 @@ def shutdown(hostname, addr):
 def listImages():
 	pass
 
-def modify_exports_file(volume_name):
-	print(volume_name)
+# The export entry based on zone_id, ex: one zone has one export entry 
+def modify_exports_file(zone_id):
+	print(zone_id)
 	file = open('/etc/exports','a+r')
-	entry = volume_name + '\t' + '*(rw,async,no_root_squash)'+'\n'
-	if (file.read().find(volume_name)):
-		print('found')
+	entry = StorageMountPoint +'/' + zone_id +'\t' + '*(rw,async,no_root_squash)'+'\n'
+	if (file.read().find(zone_id)):
+		print(zone_id + 'entry already existed in the exports file')
+	else:
 		file.write(entry)
 	file.close()
 	
 	os.system('exportfs -rv')
+
 def call_bgcommander(client_ip, nfs_path, volume_readonly):
 	if (volume_readyonly == True):
 		#os.system('bgcommander '+ client_ip +' '+nfs_path + ' ' + 'ro')
