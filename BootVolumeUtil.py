@@ -56,7 +56,7 @@ def boot_host(deployDict):
 	call_bgcommander(deployDict)	
 			
 
-def check_current_status():
+def check_current_status(deployDict):
 
 	if ( not os.path.isdir(templateStor)):
         	logger.error("The tempate storage folder does not exist!, check if the iSCSI connection to backend storage correctly")
@@ -74,8 +74,6 @@ def create_volume(deployDict):
 
 	for host in deployDict.get('host_list'):
 		if host.get('read_only'): #create one ro volume
-			print ('ro '+str(host.get('read_only')))
-			print ('check folder exist?'+str(os.path.isdir(templateStor + '/' + deployDict.get('zone_id')+'/'+'ro')))
 			if ( not  os.path.isdir(templateStor + '/' + deployDict.get('zone_id')+'/'+'ro')):
 				source_dir = templateStor+'/'+host.get('volume')
                			dest_dir = templateStor+'/'+deployDict.get('zone_id')+'/'+'ro'
@@ -83,7 +81,6 @@ def create_volume(deployDict):
                 		logger.info('volume '+host.get('volume')+'has already copy to '+dest_dir)
 			
 		else: #create rw volume for each host
-			print ('rw '+str(host.get('read_only')))
 			source_dir = templateStor+'/'+host.get('volume')
 			dest_dir = templateStor+'/'+deployDict.get('zone_id') + '/rw/' + host.get('hostname')
 			copytree(source_dir,dest_dir)
@@ -100,36 +97,33 @@ def append_to_exports_file(deployDict):
 		if (host.get('read_only') == True):
 			flag_ro = True
 	#		entry = templateStor +'/' + deployDict.get('zone_id') +'\t' + '*(ro,async,no_root_squash,no_subtree_check)'+'\n'
-		if (host.get('read_only') == False)
+		if (host.get('read_only') == False):
 			flag_rw = True
 	#		entry = templateStor +'/' + deployDict.get('zone_id') +'\t' + '*(rw,async,no_root_squash,no_subtree_check)'+'\n'
 
-	
+	if (flag_ro == True):
+		entry = templateStor + '/' + deployDict.get('zone_id') + '/ro' + '\t' + '*(ro,async,no_root_squash,no_subtree_check)' + '\n'
+		exports_file.write(entry)
+	if (flag_rw == True):
+		entry = templateStor + '/' + deployDict.get('zone_id') + '/rw' + '\t' + '*(rw,async,no_root_squash,no_subtree_check)' + '\n'
+                exports_file.write(entry)
 
-	if (myfile.read().find(deployDict.get('zone_id')) > 0):
-		logger.info(' The zone id: ' + deployDict.get('zone_id') + ' already exist in the exports file')
-	else:
-		myfile.write(entry)
-		logger.info('The Export entry: '+entry+'already write to exports file')
-
-	myfile.close()
+	exports_file.close()
 	os.system('exportfs -rv')
 
 
 def call_bgcommander(deployDict):
-	if (deployDict.get('volume_readonly') == True):
-		nfs_path = templateStor+'/'+deployDict.get('zone_id')
-		for t_addr in deployDict.get('addr'):
-			command = './bgcommander ' + ip + ' ' + nfs_path + 'ro'
-			logger.info(command)
-#			os.system(command)
-	else:
-		nfs_path = templateStor+'/'+deployDict.get('zone_id')
-		for i in range(len(deployDict.get('hostname'))):
-			command = './bgcommander '+ deployDict.get('addr')[i] + ' ' +exportRootPath+'/'+deployDict.get('zone_id')+'/nodes/'+deployDict.get('hostname')[i] + ',rw'
-			logger.info(command)
-#			os.system(command) 	
 
+	nfs_path = templateStor+'/'+deployDict.get('zone_id')
+	for host in deployDict.get('host_list'):
+		if (host.get('read_only') == True):
+			command = './bgcommander ' + host.get('ip')+' '+exportRootPath+'/'+deployDict.get('zone_id')+'/ro'
+			print('ro: '+command)
+			#os.system(command)
+		else:
+			command = './bgcommander ' + host.get('ip')+' '+exportRootPath+'/'+deployDict.get('zone_id')+'/rw/'+host.get('hostname')
+			print('rw: '+command)
+			#os.system(command)	
 
 def reboot(hostname, addr):
 	return True
