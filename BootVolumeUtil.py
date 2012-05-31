@@ -3,10 +3,11 @@ Utility functions for bootserver to create client images and volumes.
 """
 
 import os
+import command
 import logging
 from shutil import copytree, rmtree
 
-bootServerIp = '192.168.100.101'
+bootServerIp = commands.getoutput("ifconfig").split("\n")[1].split()[1][5:]
 templateStor = "/templateVol"
 exportRootPath = bootServerIp+":/templateVol"
 
